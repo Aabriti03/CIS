@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/api';
 import '../components/ServiceWorkerList.css'; // reuse your existing styles
 
 const SearchResults = () => {
@@ -23,7 +23,8 @@ const SearchResults = () => {
       try {
         setLoading(true);
         // Call backend API to search workers by name or category
-        const res = await axios.get(`http://localhost:5000/api/users/search?q=${encodeURIComponent(q)}`);
+        const res = await api.get(`/search?query=${searchTerm}`);
+
         setWorkers(res.data);
       } catch (error) {
         console.error('Error fetching search results:', error);

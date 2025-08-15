@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from '../api/api';
 import "./Register.css";
 
 const Register = () => {
@@ -40,7 +40,7 @@ const Register = () => {
         category: role === "worker" ? formData.category : undefined,
       };
 
-      const res = await axios.post("http://localhost:5000/api/auth/register", payload);
+      const res = await api.post('/auth/register', form);
       alert(res.data.message);
       setFormData({
         name: "",
@@ -118,8 +118,8 @@ const Register = () => {
             <option value="plumbing">Plumber</option>
             <option value="gardening">Gardener</option>
             <option value="babysitting">Babysitter</option>
-            <option value="electric">Electrician</option>
-            <option value="house help">House Help</option>
+            <option value="electric">Electric</option>
+            <option value="househelp">House Help</option>
           </select>
         )}
         <button type="submit">Register</button>

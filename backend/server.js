@@ -9,6 +9,7 @@ const connectDB = require('./config/db'); // make sure this connects to MongoDB
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const postRequestRoutes = require('./routes/postRequestRoutes'); // needed for /api/postrequests
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -17,19 +18,18 @@ app.use(morgan('dev'));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// -------- CORS (allow your Vite dev origins) --------
-const allowedOrigins = (process.env.CORS_ORIGINS ||
-  'http://localhost:5176,http://127.0.0.1:5176,http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175,http://localhost:3000'
-).split(',');
+// -------- CORS (reads allowed origins from .env or uses defaults) --------
+const rawOrigins = process.env.CORS_ORIGINS ||
+  'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175,http://localhost:5176,http://127.0.0.1:5176,http://localhost:3000';
 
-const adminRoutes = require('./routes/adminRoutes');
-app.use('/api/admin', adminRoutes);
-
+const allowedOrigins = rawOrigins.split(',').map(o => o.trim()).filter(Boolean);
 
 const corsOptions = {
   origin(origin, callback) {
-    // allow REST tools / same-origin / server-to-server (no origin)
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    // Allow no-origin requests (Postman, curl) or whitelisted origins
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
     return callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
@@ -38,7 +38,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // use SAME options for preflight
+app.options('*', cors(corsOptions)); // Preflight requests
 
 // -------- Health check --------
 app.get('/health', (req, res) => {
@@ -46,6 +46,7 @@ app.get('/health', (req, res) => {
 });
 
 // -------- API routes --------
+app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/postrequests', postRequestRoutes);

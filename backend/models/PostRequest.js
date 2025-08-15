@@ -7,7 +7,8 @@ const postRequestSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
-    workerId: {  // New field to track assigned worker or direct requests
+    workerId: {
+      // Track assigned worker or direct requests
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null,
@@ -15,7 +16,8 @@ const postRequestSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ['electrician', 'babysitting', 'gardening', 'househelp', 'plumbing'],
+      // ✅ Match enum with backend category values (no mismatch with frontend)
+      enum: ['electric', 'babysitting', 'gardening', 'househelp', 'plumbing'],
     },
     description: {
       type: String,

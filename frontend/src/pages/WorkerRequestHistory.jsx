@@ -1,7 +1,7 @@
 // frontend/src/pages/WorkerRequestHistory.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api/api"; // ✅ use shared axios instance
+import api from '../api/api';
 import WorkerNavbar from "../components/WorkerNavbar";
 
 const WorkerRequestHistory = () => {

@@ -3,20 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import './Navbar.css';
 import logo from '../assets/logo.png';
-
-const categories = [
-  'electrician',
-  'babysitting',
-  'gardening',
-  'househelp',
-  'plumbing',
-];
+import { CATEGORIES, CATEGORY_LABELS } from '../constants/categories'; // 🔹 use constants
 
 const Navbar = () => {
   const [showPostModal, setShowPostModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [description, setDescription] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');  // <-- Added state for search input
+  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
 
   const openPostModal = () => setShowPostModal(true);
@@ -42,16 +35,13 @@ const Navbar = () => {
       }
 
       const response = await api.post('/postrequests', {
-      category: selectedCategory,
-      description: description.trim(),
+        category: selectedCategory,
+        description: description.trim(),
       });
-
 
       if (response.status === 201) {
         alert('✅ Request posted successfully!');
         closePostModal();
-
-        // OPTIONAL: Redirect to Post History
         navigate('/dashboard/posthistory');
       } else {
         alert('⚠️ Unexpected server response');
@@ -76,8 +66,7 @@ const Navbar = () => {
           <img src={logo} alt="Logo" />
         </div>
         <div className="navbar-search">
-          
-          
+          {/* Empty search bar placeholder */}
         </div>
         <ul className="nav-links">
           <li onClick={() => navigate('/dashboard/customerdashboard')} style={{ cursor: 'pointer' }}>
@@ -119,9 +108,9 @@ const Navbar = () => {
                   required
                 >
                   <option value="">Select a category</option>
-                  {categories.map((cat) => (
+                  {CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>
-                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      {CATEGORY_LABELS[cat]}
                     </option>
                   ))}
                 </select>

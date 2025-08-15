@@ -1,7 +1,7 @@
 // frontend/src/pages/PostHistory.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api/api"; // ✅ use shared axios instance
+import api from "../api/api"; // 
 import Navbar from "../components/Navbar";
 
 export default function PostHistory() {

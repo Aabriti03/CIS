@@ -1,20 +1,20 @@
-// backend/routes/adminRoutes.js
 const express = require('express');
 const router = express.Router();
-
-// ✅ Import the main auth middleware and the adminOnly guard from it
 const auth = require('../middleware/authMiddleware');
-const { adminOnly } = auth;
+const { requireRole } = require('../middleware/roles');
 
-// Example admin endpoints (keep your existing handlers/controllers)
+// Example admin health check (no auth)
 router.get('/health', (req, res) => res.json({ ok: true, scope: 'admin' }));
 
-// Protect admin routes: first check token (auth), then role (adminOnly)
-router.get('/stats', auth, adminOnly, (req, res) => {
-  res.json({ message: 'Admin stats', user: { id: req.user._id, role: req.user.role } });
+// ✅ Protect admin routes: token check -> role check
+router.get('/stats', auth, requireRole('admin'), (req, res) => {
+  res.json({
+    message: 'Admin stats',
+    user: { id: req.user._id, role: req.user.role }
+  });
 });
 
-// Add your real admin routes below, always: auth -> adminOnly -> handler
-// router.post('/something', auth, adminOnly, adminController.doSomething);
+// Add your real admin routes below (always auth -> requireRole('admin') -> handler)
+// router.post('/something', auth, requireRole('admin'), adminController.doSomething);
 
 module.exports = router;

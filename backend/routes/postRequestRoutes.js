@@ -1,30 +1,26 @@
-const express = require('express');
-const router = express.Router();
-
-// ✅ Fixed case-sensitive import
-const authMiddleware = require('../middleware/authMiddleware');
+const router = require('express').Router();
+const auth = require('../middleware/authMiddleware');
+const { requireRole } = require('../middleware/roles');
 
 const {
   createPostRequest,
-  getPostRequestsByCustomer,
+  getCustomerRequests,
   getRequestsForWorkerCategory,
-  getAcceptedRequestsForWorker, // ✅ added this controller
   updateRequestStatus,
+  getAcceptedRequestsForWorker,
 } = require('../controllers/postRequestController');
 
-// Create a new post request
-router.post('/', authMiddleware, createPostRequest);
+// ✅ Customer can create requests & view own requests
+router.post('/', auth, requireRole('customer'), createPostRequest);
+router.get('/customer', auth, requireRole('customer'), getCustomerRequests);
 
-// Get post requests for the logged-in customer
-router.get('/', authMiddleware, getPostRequestsByCustomer);
+// ✅ Worker can view requests for their category
+router.get('/worker', auth, requireRole('worker'), getRequestsForWorkerCategory);
 
-// Get requests for a worker's category
-router.get('/worker', authMiddleware, getRequestsForWorkerCategory);
+// ✅ Worker can view their accepted requests
+router.get('/worker/accepted', auth, requireRole('worker'), getAcceptedRequestsForWorker);
 
-// ✅ Get accepted requests for the logged-in worker (for Worker History page)
-router.get('/worker/accepted', authMiddleware, getAcceptedRequestsForWorker);
-
-// Update request status (accept/decline)
-router.put('/:requestId/status', authMiddleware, updateRequestStatus);
+// ✅ Worker can update request status
+router.put('/:id/status', auth, requireRole('worker'), updateRequestStatus);
 
 module.exports = router;

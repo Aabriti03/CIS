@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from '../api/api';
 import WorkerNavbar from "../components/WorkerNavbar";
 import "../components/WorkerDashboard.css";
 
@@ -22,10 +22,10 @@ const WorkerDashboard = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(
-        "http://localhost:5000/api/postrequests/worker",
+      const res = await api.get(`/postrequests/worker`);
+
         { headers: { Authorization: `Bearer ${token}` } }
-      );
+      
       const serverList = res.data || [];
       setRequests(serverList);
       setStats(computeStatsFrom(serverList));
@@ -45,11 +45,9 @@ const WorkerDashboard = () => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.put(
-        `http://localhost:5000/api/postrequests/${requestId}/status`,
-        { status },
+      await api.patch(`/postrequests/${requestId}`, { status });
+
         { headers: { Authorization: `Bearer ${token}` } }
-      );
       await fetchRequests();
     } catch (error) {
       console.error(`Error updating request status to ${status}:`, error);

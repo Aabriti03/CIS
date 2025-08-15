@@ -1,79 +1,98 @@
+// backend/controllers/postRequestController.js
 const PostRequest = require('../models/PostRequest');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
-// Create a new post request (for customers)
-exports.createPostRequest = async (req, res) => {
+// Customer: create a new post request (optionally targeted to a worker)
+exports.createPostRequest = async (req, res, next) => {
   try {
-    const { category, description, workerId } = req.body;
-    const customerId = req.user._id;
+    const customerId = req.user?._id;
+    const { category, description, workerId = null } = req.body;
 
+    if (!customerId) return res.status(401).json({ message: 'Unauthorized' });
     if (!category || !description) {
       return res.status(400).json({ message: 'Category and description are required.' });
     }
 
-    const newRequest = new PostRequest({
-      customerId,
-      category,
-      description,
-      status: 'pending',
-      workerId: workerId || null,
-    });
+    const payload = { customerId, category, description, status: 'pending' };
 
+    // allow direct request to a specific worker if valid
+    if (workerId && mongoose.Types.ObjectId.isValid(workerId)) {
+      payload.workerId = workerId;
+    } else {
+      payload.workerId = null;
+    }
 
-    const savedRequest = await newRequest.save();
+    const savedRequest = await PostRequest.create(payload);
     res.status(201).json(savedRequest);
   } catch (error) {
     console.error('Error creating post request:', error);
-    res.status(500).json({ message: 'Server error' });
+    next ? next(error) : res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Get all post requests by the logged-in customer
-exports.getPostRequestsByCustomer = async (req, res) => {
+// Customer: get all requests by logged-in customer
+exports.getCustomerRequests = async (req, res, next) => {
   try {
-    const customerId = req.user._id;
-    const requests = await PostRequest.find({ customerId }).sort({ createdAt: -1 });
+    const customerId = req.user?._id;
+    if (!customerId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const requests = await PostRequest.find({ customerId })
+      .sort({ createdAt: -1 });
     res.json(requests);
   } catch (error) {
     console.error('Error fetching post requests:', error);
-    res.status(500).json({ message: 'Server error' });
+    next ? next(error) : res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Get all pending requests matching the logged-in worker's category
-exports.getRequestsForWorkerCategory = async (req, res) => {
+// Worker: get pending requests that match worker's category OR are directly assigned
+exports.getRequestsForWorkerCategory = async (req, res, next) => {
   try {
-    const workerId = req.user._id;
-    const worker = await User.findById(workerId);
+    const workerId = req.user?._id;
+    if (!workerId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const worker = await User.findById(workerId).lean();
     if (!worker || worker.role !== 'worker') {
       return res.status(403).json({ message: 'You are not authorized or your category is missing.' });
     }
-
-    const category = worker.category;
-    if (!category) {
+    if (!worker.category) {
       return res.status(400).json({ message: 'Worker category not found.' });
     }
 
-    const requests = await PostRequest.find({ category, status: 'pending' }).sort({ createdAt: -1 });
+    const requests = await PostRequest.find({
+      $or: [
+        { category: worker.category, status: 'pending' },
+        { workerId: workerId, status: 'pending' }, // directly targeted to this worker
+      ],
+    })
+      .sort({ createdAt: -1 });
+
     res.json(requests);
   } catch (error) {
     console.error('Error fetching requests for worker:', error);
-    res.status(500).json({ message: 'Server error' });
+    next ? next(error) : res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Update the status of a request (accept/decline)
-exports.updateRequestStatus = async (req, res) => {
+// Worker: accept/reject a request (param :id)
+exports.updateRequestStatus = async (req, res, next) => {
   try {
-    const workerId = req.user._id;
-    const { requestId } = req.params;
-    const { status } = req.body; // Expected to be "accepted" or "declined"
+    const workerId = req.user?._id;
+    const { id } = req.params;
+    const { status } = req.body; // "accepted" or "rejected"
 
-    if (!['accepted', 'declined'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status value.' });
+    if (!workerId) return res.status(401).json({ message: 'Unauthorized' });
+
+    if (!['accepted', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: "Invalid status. Use 'accepted' or 'rejected'." });
     }
 
-    const request = await PostRequest.findById(requestId);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid request id.' });
+    }
+
+    const request = await PostRequest.findById(id);
     if (!request) {
       return res.status(404).json({ message: 'Request not found.' });
     }
@@ -91,18 +110,21 @@ exports.updateRequestStatus = async (req, res) => {
     res.json({ message: `Request ${status} successfully.`, request });
   } catch (error) {
     console.error('Error updating request status:', error);
-    res.status(500).json({ message: 'Server error' });
+    next ? next(error) : res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Get accepted requests assigned to logged-in worker (for request history)
-exports.getAcceptedRequestsForWorker = async (req, res) => {
+// Worker: get accepted requests assigned to logged-in worker (history)
+exports.getAcceptedRequestsForWorker = async (req, res, next) => {
   try {
-    const workerId = req.user._id;
-    const requests = await PostRequest.find({ workerId, status: 'accepted' }).sort({ updatedAt: -1 });
+    const workerId = req.user?._id;
+    if (!workerId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const requests = await PostRequest.find({ workerId, status: 'accepted' })
+      .sort({ updatedAt: -1 });
     res.json(requests);
   } catch (error) {
     console.error('Error fetching accepted requests:', error);
-    res.status(500).json({ message: 'Server error' });
+    next ? next(error) : res.status(500).json({ message: 'Server error' });
   }
 };
