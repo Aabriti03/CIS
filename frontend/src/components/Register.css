@@ -1,0 +1,85 @@
+/* Login.css and Register.css */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #000000;
+  font-family: Arial, sans-serif;
+}
+
+.login-container,
+.register-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-form,
+.register-form {
+  background-color: #A2D5C6;
+  padding: 30px;
+  border-radius: 12px;
+  width: 320px;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.login-form h2,
+.register-form h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 6px;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background-color: #000000;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+p {
+  text-align: center;
+  margin-top: 15px;
+}
+
+span {
+  color: #000000;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  width: calc(100% - 60px); /* prevent it from overflowing */
+  padding-right: 50px;
+  box-sizing: border-box;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #444;
+  font-size: 13px;
+  font-weight: bold;
+}

@@ -1,0 +1,68 @@
+.worker-list-container {
+  background-color: #000; /* black background */
+  min-height: 100vh;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #fff; /* white font for general text */
+}
+
+/* Back button styling */
+.back-button {
+  background-color: #98ff98; /* mint green */
+  color: #000; /* black text */
+  border: none;
+  padding: 8px 14px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  width: 80px;
+  transition: background-color 0.3s ease;
+}
+
+.back-button:hover {
+  background-color: #7fff7f;
+}
+
+.category-title {
+  color: #fff; /* white */
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Worker cards container */
+.worker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* Each worker card */
+.worker-card {
+  background-color: #fff; /* white background */
+  color: #000; /* black text */
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 255, 128, 0.2); /* subtle mint glow */
+  border: 1px solid #2e2e2e;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Request button */
+.request-button {
+  margin-top: 1.5rem;
+  padding: 10px;
+  background-color: #98ff98; /* mint green */
+  color: #000; /* black text */
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+}
+
+.request-button:hover {
+  background-color: #7fff7f;
+}

@@ -1,0 +1,32 @@
+.worker-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #000000;
+  padding: 10px 20px;
+  border-bottom: 2px solid #cfffe2;
+  color: #cfffe2;
+  font-family: Arial, sans-serif;
+}
+
+.nav-logo img {
+  height: 40px;
+  cursor: pointer;
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  gap: 25px;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-links li {
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.nav-links li:hover {
+  color: #a2d5c6;
+}
