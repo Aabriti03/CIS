@@ -1,80 +1,82 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import api from "../../api/api";
 
-/* Match your Customer Dashboard categories exactly */
-const CATEGORIES = [
-  { key: "babysitting", label: "Babysitting" },
-  { key: "electric", label: "Electric" },
-  { key: "gardening", label: "Gardening" },
-  { key: "househelp", label: "House Help" },
-  { key: "plumbing", label: "Plumbing" },
-];
+const categories = ["babysitting", "electric", "gardening", "househelp", "plumbing"];
 
 const ViewWorkers = () => {
-  const [activeKey, setActiveKey] = useState(CATEGORIES[0].key);
   const [workers, setWorkers] = useState([]);
+  const [activeCategory, setActiveCategory] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
+  const [error, setError] = useState(null);
+  const location = useLocation();
 
   useEffect(() => {
-    let live = true;
-    setLoading(true);
-    setErr("");
-    (async () => {
-      try {
-        // Uses your existing workers-by-category API
-        const { data } = await api.get(`/users/workers/${encodeURIComponent(activeKey)}`);
-        if (live) setWorkers(Array.isArray(data) ? data : []);
-      } catch (e) {
-        if (live) setErr("Failed to load workers");
-      } finally {
-        if (live) setLoading(false);
-      }
-    })();
-    return () => { live = false; };
-  }, [activeKey]);
+    // reset state when navigating back
+    setWorkers([]);
+    setActiveCategory(null);
+  }, [location.pathname]);
 
-  const activeLabel = useMemo(
-    () => CATEGORIES.find(c => c.key === activeKey)?.label || "Workers",
-    [activeKey]
-  );
+  const fetchWorkers = async (cat) => {
+    setActiveCategory(cat);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/admin/workers/by-category/${cat}`);
+      setWorkers(res.data || []);
+    } catch (err) {
+      setError("Failed to load workers");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <section className="admin-card">
-      <h2 style={{ margin: "0 0 12px" }}>Worker Profiles</h2>
-
-      <div className="grid" style={{ marginBottom: 16 }}>
-        {CATEGORIES.map((c) => (
+    <div>
+      <h2 className="text-xl font-bold mb-4">Workers</h2>
+      <div className="flex gap-2 mb-4">
+        {categories.map((c) => (
           <button
-            key={c.key}
-            className="tile"
-            onClick={() => setActiveKey(c.key)}
-            style={{ textAlign: "left", border: activeKey === c.key ? "2px solid #16a34a" : undefined }}
+            key={c}
+            onClick={() => fetchWorkers(c)}
+            className={`px-4 py-2 rounded ${
+              activeCategory === c ? "bg-blue-600 text-white" : "bg-gray-200"
+            }`}
           >
-            <h4 style={{ marginBottom: 4 }}>{c.label}</h4>
-            <p>View profiles</p>
+            {c.charAt(0).toUpperCase() + c.slice(1)}
           </button>
         ))}
       </div>
 
-      <h3 style={{ margin: "6px 0 10px" }}>{activeLabel}</h3>
-      {loading && <div>Loading…</div>}
-      {err && !loading && <div style={{ color: "crimson" }}>{err}</div>}
-      {!loading && !err && (
-        <div className="grid">
-          {workers.map((w) => (
-            <article key={w._id || w.id} className="tile">
-              <h4>{w.name}</h4>
-              <p style={{ margin: "6px 0" }}><span className="badge">Phone: {w.phone || "—"}</span></p>
-              <p>Category: {w.category}</p>
-              <p>City: {w.address || "—"}</p>
-              {/* No Send Request button */}
-            </article>
-          ))}
-          {workers.length === 0 && <div style={{ color: "#6b7280" }}>No workers in this category.</div>}
-        </div>
+      {loading && <p>Loading...</p>}
+      {error && <p className="text-red-600">{error}</p>}
+      {!loading && !error && activeCategory && (
+        <table className="min-w-full bg-white border">
+          <thead>
+            <tr>
+              <th className="px-4 py-2 border">Name</th>
+              <th className="px-4 py-2 border">Email</th>
+              <th className="px-4 py-2 border">Phone</th>
+              <th className="px-4 py-2 border">Category</th>
+              <th className="px-4 py-2 border">Joined</th>
+            </tr>
+          </thead>
+          <tbody>
+            {workers.map((w) => (
+              <tr key={w._id}>
+                <td className="border px-4 py-2">{w.name}</td>
+                <td className="border px-4 py-2">{w.email}</td>
+                <td className="border px-4 py-2">{w.phone}</td>
+                <td className="border px-4 py-2">{w.category}</td>
+                <td className="border px-4 py-2">
+                  {new Date(w.createdAt).toLocaleDateString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
-    </section>
+    </div>
   );
 };
 

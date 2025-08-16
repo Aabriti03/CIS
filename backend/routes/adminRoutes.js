@@ -14,7 +14,7 @@ router.get('/health', (req, res) => res.json({ ok: true, scope: 'admin' }));
 router.get('/stats', auth, requireRole('admin'), (req, res) => {
   res.json({
     message: 'Admin stats',
-    user: { id: req.user._id, role: req.user.role }
+    ok: true
   });
 });
 
@@ -24,7 +24,7 @@ router.get('/stats', auth, requireRole('admin'), (req, res) => {
 router.get('/customers', auth, requireRole('admin'), async (req, res, next) => {
   try {
     const customers = await User.find({ role: 'customer' })
-      .select('-passwordHash -__v')
+      .select('-password -__v')
       .sort({ createdAt: -1 });
     res.json(customers);
   } catch (err) {
@@ -34,13 +34,13 @@ router.get('/customers', auth, requireRole('admin'), async (req, res, next) => {
 
 /**
  * Admin: view worker profiles by category (no passwords)
- * Expects one of: babysitting|electric|gardening|household|plumbing
+ * Expects one of: babysitting|electric|gardening|househelp|plumbing
  */
 router.get('/workers/by-category/:category', auth, requireRole('admin'), async (req, res, next) => {
   try {
     const category = req.params.category;
     const workers = await User.find({ role: 'worker', category })
-      .select('-passwordHash -__v')
+      .select('-password -__v')
       .sort({ createdAt: -1 });
     res.json(workers);
   } catch (err) {
@@ -67,6 +67,7 @@ router.get('/recent-activities', auth, requireRole('admin'), async (req, res, ne
       .lean();
 
     const activities = [
+      // user registrations
       ...latestUsers.map(u => ({
         _id: `u_${u._id}`,
         type: 'user.registered',
@@ -76,13 +77,14 @@ router.get('/recent-activities', auth, requireRole('admin'), async (req, res, ne
         name: u.name,
         email: u.email
       })),
+      // request lifecycle
       ...latestRequests.map(r => ({
         _id: `r_${r._id}`,
-        type: `request.${r.status}`,
+        type: 'request.activity',
         at: r.updatedAt || r.createdAt,
-        requestId: r._id,
+        status: r.status || 'pending',
         category: r.category,
-        customerId: r.customerId,
+        customerId: r.customerId || null,
         workerId: r.workerId || null,
         description: r.description
       }))

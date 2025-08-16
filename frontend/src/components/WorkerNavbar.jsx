@@ -9,20 +9,19 @@ const WorkerNavbar = () => {
 
   const handleLogout = () => {
     localStorage.clear();
-    navigate("/"); // Go to login
-  };
-
-  const goToProfile = () => {
-    navigate("/dashboard/profile");
+    navigate("/"); // back to login
   };
 
   const goHome = () => {
-    navigate("/dashboard/workerdashboard"); // ✅ matches App.jsx
+    navigate("/dashboard/workerdashboard"); // worker home
   };
 
   const goToRequestHistory = () => {
-    // 🔧 FIX: match App.jsx route
-    navigate("/worker/requests");
+    navigate("/worker/requests"); // canonical worker history route
+  };
+
+  const goToProfile = () => {
+    navigate("/dashboard/profile"); // <-- FIX: this route actually exists
   };
 
   return (
@@ -31,7 +30,6 @@ const WorkerNavbar = () => {
         <img src={logo} alt="Logo" />
       </div>
 
-      {/* Use CSS .nav-links for horizontal layout */}
       <ul className="nav-links">
         <li onClick={goHome}>Home</li>
         <li onClick={goToRequestHistory}>Request History</li>

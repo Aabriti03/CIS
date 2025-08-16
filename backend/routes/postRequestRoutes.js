@@ -3,29 +3,27 @@ const express = require('express');
 const router = express.Router();
 
 const auth = require('../middleware/authMiddleware');
-const { requireRole } = require('../middleware/roles');
-
 const {
   createPostRequest,
   getCustomerRequests,
   getRequestsForWorkerCategory,
-  updateRequestStatus,
+  acceptRequest,
   getAcceptedRequestsForWorker,
 } = require('../controllers/postRequestController');
 
-// Customer creates a request
-router.post('/', auth, requireRole('customer'), createPostRequest);
+// Customer: create a new service request (optionally targeted to a worker)
+router.post('/', auth, createPostRequest);
 
-// Customer: get my requests
-router.get('/customer', auth, requireRole('customer'), getCustomerRequests);
+// Customer: view my own requests (post history)
+router.get('/customer', auth, getCustomerRequests);
 
-// Worker: available/pending requests (unassigned in my category OR pending assigned to me)
-router.get('/worker', auth, requireRole('worker'), getRequestsForWorkerCategory);
+// Worker: feed (pending requests in my category or assigned to me)
+router.get('/worker', auth, getRequestsForWorkerCategory);
 
-// Worker: accept/reject a request
-router.put('/:id/status', auth, requireRole('worker'), updateRequestStatus);
+// Worker: accept a specific request
+router.patch('/:id/accept', auth, acceptRequest);
 
-// Worker: my accepted requests (HISTORY)  🔧 this is the route your UI needs
-router.get('/accepted', auth, requireRole('worker'), getAcceptedRequestsForWorker);
+// Worker: my accepted requests (request history)
+router.get('/accepted', auth, getAcceptedRequestsForWorker);
 
 module.exports = router;

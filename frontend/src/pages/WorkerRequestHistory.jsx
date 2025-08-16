@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
-import Navbar from "../components/Navbar";
+import WorkerNavbar from "../components/WorkerNavbar";
 
 export default function WorkerRequestHistory() {
   const navigate = useNavigate();
@@ -14,7 +14,8 @@ export default function WorkerRequestHistory() {
     setLoading(true);
     setErr("");
     try {
-      const res = await api.get("/postrequests/accepted"); // ✅ backend route
+      // ✅ Fetch accepted requests for this worker
+      const res = await api.get("/postrequests/accepted");
       setRows(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error("Error loading worker history:", e);
@@ -32,30 +33,31 @@ export default function WorkerRequestHistory() {
 
   useEffect(() => {
     fetchHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <div style={{ backgroundColor: "#FFF8E1", minHeight: "100vh" }}>
-      <Navbar />
+    <div>
+      <WorkerNavbar />
       <div style={{ padding: 20 }}>
-        <h2 style={{ marginBottom: 16 }}>My Accepted Requests</h2>
+        <h2>Request History (Accepted)</h2>
 
-        {loading ? (
-          <p>Loading...</p>
-        ) : err ? (
-          <p style={{ color: "red" }}>{err}</p>
-        ) : rows.length === 0 ? (
+        {loading && <p>Loading...</p>}
+        {err && <p style={{ color: "red" }}>{err}</p>}
+
+        {!loading && !err && rows.length === 0 && (
           <p>No accepted requests yet.</p>
-        ) : (
+        )}
+
+        {!loading && !err && rows.length > 0 && (
           <table
             style={{
               width: "100%",
               borderCollapse: "collapse",
-              background: "#fff",
               borderRadius: 10,
               overflow: "hidden",
               boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              background: "#fff", // <- white card like Post History
+              color: "#000",
             }}
           >
             <thead>

@@ -1,57 +1,71 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import api from "../../api/api";
 
 const RecentActivities = () => {
-  const [rows, setRows] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [error, setError] = useState(null);
+  const location = useLocation();
 
   useEffect(() => {
-    let live = true;
-    (async () => {
+    let active = true;
+    const controller = new AbortController();
+
+    const fetchActivities = async () => {
       try {
-        const { data } = await api.get("/admin/recent-activities");
-        if (live) setRows(Array.isArray(data) ? data : []);
-      } catch (e) {
-        if (live) setErr("Failed to load activities");
+        setLoading(true);
+        setError(null);
+        const res = await api.get("/admin/recent-activities", {
+          signal: controller.signal,
+        });
+        if (active) {
+          setActivities(res.data || []);
+        }
+      } catch (err) {
+        if (active) setError("Failed to load activities");
       } finally {
-        if (live) setLoading(false);
+        if (active) setLoading(false);
       }
-    })();
-    return () => { live = false; };
-  }, []);
+    };
+
+    fetchActivities();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [location.pathname]);
 
   return (
-    <section className="admin-card">
-      <h2 style={{ margin: "0 0 12px 0" }}>Recent Activities</h2>
-      {loading && <div>Loading…</div>}
-      {err && !loading && <div style={{ color: "crimson" }}>{err}</div>}
-      {!loading && !err && (
-        <div style={{ overflowX: "auto" }}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th style={{ minWidth: 140 }}>Date & Time</th>
-                <th>Activity</th>
-                <th style={{ minWidth: 120 }}>User / Request ID</th>
-                <th style={{ minWidth: 100 }}>Status</th>
+    <div>
+      <h2 className="text-xl font-bold mb-4">Recent Activities</h2>
+      {loading && <p>Loading...</p>}
+      {error && <p className="text-red-600">{error}</p>}
+      {!loading && !error && (
+        <table className="min-w-full bg-white border">
+          <thead>
+            <tr>
+              <th className="px-4 py-2 border">Date & Time</th>
+              <th className="px-4 py-2 border">Activity</th>
+              <th className="px-4 py-2 border">User / Request ID</th>
+              <th className="px-4 py-2 border">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {activities.map((a) => (
+              <tr key={a._id}>
+                <td className="border px-4 py-2">{new Date(a.at).toLocaleString()}</td>
+                <td className="border px-4 py-2">{a.type}</td>
+                <td className="border px-4 py-2">
+                  {a.actorId || a.customerId || a.workerId}
+                </td>
+                <td className="border px-4 py-2">{a.status || "-"}</td>
               </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={i}>
-                  <td>{r.ts}</td>
-                  <td>{r.activity}</td>
-                  <td>{r.ref}</td>
-                  <td><span className="badge">{r.status}</span></td>
-                </tr>
-              ))}
-              {rows.length === 0 && <tr><td colSpan={4} style={{ color: "#6b7280" }}>No recent activity.</td></tr>}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       )}
-    </section>
+    </div>
   );
 };
 

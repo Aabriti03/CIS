@@ -30,3 +30,8 @@
 .nav-links li:hover {
   color: #a2d5c6;
 }
+body {
+  background-color: #cfffe2; /* mint green background */
+  margin: 0;
+  padding: 0;
+}

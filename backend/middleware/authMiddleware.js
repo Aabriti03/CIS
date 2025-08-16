@@ -2,46 +2,36 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-const authMiddleware = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'No token provided' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
+/**
+ * Auth middleware:
+ * - Reads Bearer token from Authorization header
+ * - Verifies JWT
+ * - Loads user (id, role, category) and attaches to req.user
+ */
+module.exports = async function authMiddleware(req, res, next) {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Accept both {_id} and {id} payloads
-    const userId = decoded._id || decoded.id;
-    if (!userId) {
-      return res.status(401).json({ message: 'Token payload missing user id' });
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'No token provided' });
     }
 
-    const user = await User.findById(userId).select('-password');
+    const token = authHeader.split(' ')[1];
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    const user = await User.findById(decoded._id).select('_id role category');
     if (!user) {
-      return res.status(401).json({ message: 'User not found' });
+      return res.status(401).json({ message: 'Invalid token' });
     }
 
-    req.user = user;
-    next();
+    req.user = { _id: user._id, role: user.role, category: user.category || null };
+    return next();
   } catch (err) {
-    console.error('Auth middleware error:', err);
-    return res.status(401).json({ message: 'Token is not valid' });
+    console.error('authMiddleware error:', err);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
-
-// Optional: admin-only guard
-const adminOnly = (req, res, next) => {
-  if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Admins only' });
-  }
-  next();
-};
-
-// Default export is the auth middleware;
-// adminOnly is available as a property if you need it.
-module.exports = authMiddleware;
-module.exports.adminOnly = adminOnly;

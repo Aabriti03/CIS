@@ -1,130 +1,128 @@
-import React, { useEffect, useState } from "react";
-import api from '../api/api';
+// frontend/src/pages/WorkerDashboard.jsx
+import { useEffect, useState } from "react";
+import api from "../api/api";
 import WorkerNavbar from "../components/WorkerNavbar";
-import "../components/WorkerDashboard.css";
 
-const WorkerDashboard = () => {
-  const [requests, setRequests] = useState([]);
+export default function WorkerDashboard() {
+  const [me, setMe] = useState(null);
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [err, setErr] = useState("");
 
-  // ✅ Only New Requests stat now
-  const [stats, setStats] = useState({
-    newRequests: 0,
-  });
-
-  const computeStatsFrom = (list) => {
-    const newCount = list.filter((r) => r.status === "pending").length;
-    return { newRequests: newCount };
-  };
-
-  const fetchRequests = async () => {
-    setLoading(true);
+  async function fetchProfile() {
     try {
-      const token = localStorage.getItem("token");
-      const res = await api.get(`/postrequests/worker`);
+      const res = await api.get("/auth/profile");
+      setMe(res.data);
+    } catch (e) {
+      console.error("Failed to load profile:", e);
+    }
+  }
 
-        { headers: { Authorization: `Bearer ${token}` } }
-      
-      const serverList = res.data || [];
-      setRequests(serverList);
-      setStats(computeStatsFrom(serverList));
-    } catch (error) {
-      console.error("Error fetching worker requests:", error);
+  async function fetchRequests() {
+    setLoading(true);
+    setErr("");
+    try {
+      const res = await api.get("/postrequests/worker");
+      setRows(Array.isArray(res.data) ? res.data : []);
+    } catch (e) {
+      console.error("Error loading requests:", e);
+      const msg = e?.response?.data?.message || "Failed to load requests";
+      setErr(msg);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   useEffect(() => {
+    fetchProfile();
     fetchRequests();
   }, []);
 
-  const handleAction = async (requestId, status) => {
-    if (!requestId || !status) return;
-    setActionLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      await api.put(`/postrequests/${requestId}/status`, { status });
-      await fetchRequests();
-    } catch (error) {
-      console.error(`Error updating request status to ${status}:`, error);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   return (
-    <div className="worker-dashboard">
+    <div>
       <WorkerNavbar />
 
-      {/* ✅ Mint green background below navbar */}
-      <div style={{ backgroundColor: "#CFFFE2", minHeight: "100vh" }}>
-        {/* Quick Stats (New Requests only) */}
-        <div className="stats-container">
-          <div className="stat-card">
-            <h3>{stats.newRequests}</h3>
-            <p>New Requests</p>
-          </div>
+      {/* ✅ Greeting Section */}
+      {me && (
+        <div style={{ textAlign: "center", margin: "20px 0" }}>
+          <h2 style={{ fontSize: "1.5rem", fontWeight: "bold" }}>
+            Hi {me.name}!
+          </h2>
+          <p style={{ fontSize: "1.1rem" }}>
+            Category:{" "}
+            <span style={{ textTransform: "capitalize" }}>
+              {me.category || "-"}
+            </span>
+          </p>
         </div>
+      )}
 
-        {/* Requests Section */}
-        <div className="requests-container">
-          <h2>Requests in Your Category</h2>
+      {/* Keep your existing request box UI untouched */}
+      <div style={{ padding: 20 }}>
+        <h2>Available Requests</h2>
 
-          {loading ? (
-            <p>Loading requests...</p>
-          ) : requests.length === 0 ? (
-            <p>No service requests available in your category.</p>
-          ) : (
-            <div className="request-cards">
-              {requests.map((req) => (
-                <div key={req._id} className="request-card">
-                  <h3>
-                    {req.category
-                      ? req.category.charAt(0).toUpperCase() +
-                        req.category.slice(1)
-                      : "Request"}
-                  </h3>
-                  <p>{req.description}</p>
-                  <p>
-                    Status:{" "}
-                    {req.status
-                      ? req.status.charAt(0).toUpperCase() +
-                        req.status.slice(1)
-                      : "—"}
-                  </p>
-                  <p>
-                    Date:{" "}
-                    {req.createdAt
-                      ? new Date(req.createdAt).toLocaleString()
-                      : "—"}
-                  </p>
-                  {req.status === "pending" && (
-                    <div>
-                      <button
-                        disabled={actionLoading}
-                        onClick={() => handleAction(req._id, "accepted")}
-                        style={{ marginRight: "10px" }}
-                      >
-                        Accept
-                      </button>
-                      <button
-                        disabled={actionLoading}
-                        onClick={() => handleAction(req._id, "declined")}
-                      >
-                        Decline
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
+        {loading && <p>Loading...</p>}
+        {err && <p style={{ color: "red" }}>{err}</p>}
+        {!loading && !err && rows.length === 0 && (
+          <p>No requests available at the moment.</p>
+        )}
+
+        {!loading &&
+          !err &&
+          rows.length > 0 &&
+          rows.map((r) => (
+            <div
+              key={r._id}
+              style={{
+                border: "1px solid #ddd",
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 12,
+                background: "#fff",
+              }}
+            >
+              <p>
+                <strong>Category:</strong> {r.category}
+              </p>
+              <p>
+                <strong>Description:</strong> {r.description}
+              </p>
+              {r.customer && (
+                <p>
+                  <strong>Customer:</strong> {r.customer.name} (
+                  {r.customer.email})
+                </p>
+              )}
+              <p>
+                <strong>Created:</strong>{" "}
+                {new Date(r.createdAt).toLocaleString()}
+              </p>
+              {r.status === "pending" && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await api.patch(`/postrequests/${r._id}/accept`);
+                      fetchRequests();
+                    } catch (e) {
+                      console.error("Accept failed:", e);
+                      alert("Failed to accept request");
+                    }
+                  }}
+                  style={{
+                    background: "black",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 6,
+                    padding: "6px 12px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Accept
+                </button>
+              )}
             </div>
-          )}
-        </div>
+          ))}
       </div>
     </div>
   );
-};
-
-export default WorkerDashboard;
+}

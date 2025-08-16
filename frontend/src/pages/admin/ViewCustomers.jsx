@@ -1,76 +1,69 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import api from "../../api/api";
 
 const ViewCustomers = () => {
-  const [rows, setRows] = useState([]);
-  const [q, setQ] = useState("");
+  const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [error, setError] = useState(null);
+  const location = useLocation();
 
   useEffect(() => {
-    let live = true;
-    (async () => {
+    let active = true;
+    const controller = new AbortController();
+
+    const fetchCustomers = async () => {
       try {
-        const { data } = await api.get("/admin/customers");
-        if (live) setRows(Array.isArray(data) ? data : []);
-      } catch (e) {
-        if (live) setErr("Failed to load customers");
+        setLoading(true);
+        setError(null);
+        const res = await api.get("/admin/customers", {
+          signal: controller.signal,
+        });
+        if (active) setCustomers(res.data || []);
+      } catch (err) {
+        if (active) setError("Failed to load customers");
       } finally {
-        if (live) setLoading(false);
+        if (active) setLoading(false);
       }
-    })();
-    return () => { live = false; };
-  }, []);
+    };
 
-  const filtered = rows.filter((u) =>
-    [u.name, u.email, u.phone].join(" ").toLowerCase().includes(q.toLowerCase())
-  );
-
-  const fmt = (iso) => {
-    try { return new Date(iso).toISOString().slice(0, 10); } catch { return "—"; }
-  };
+    fetchCustomers();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [location.pathname]);
 
   return (
-    <section className="admin-card">
-      <h2 style={{ margin: "0 0 12px" }}>Customers</h2>
-
-      <div style={{ margin: "0 0 12px" }}>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search by name, email, or phone…"
-          style={{ padding: "10px 12px", width: "100%", borderRadius: 10, border: "1px solid #e5e7eb" }}
-        />
-      </div>
-
-      {loading && <div>Loading…</div>}
-      {err && !loading && <div style={{ color: "crimson" }}>{err}</div>}
-      {!loading && !err && (
-        <div style={{ overflowX: "auto" }}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th style={{ minWidth: 200 }}>Name</th>
-                <th style={{ minWidth: 220 }}>Email</th>
-                <th style={{ minWidth: 140 }}>Phone</th>
-                <th style={{ minWidth: 140 }}>Joined</th>
+    <div>
+      <h2 className="text-xl font-bold mb-4">Customers</h2>
+      {loading && <p>Loading...</p>}
+      {error && <p className="text-red-600">{error}</p>}
+      {!loading && !error && (
+        <table className="min-w-full bg-white border">
+          <thead>
+            <tr>
+              <th className="px-4 py-2 border">Name</th>
+              <th className="px-4 py-2 border">Email</th>
+              <th className="px-4 py-2 border">Phone</th>
+              <th className="px-4 py-2 border">Joined</th>
+            </tr>
+          </thead>
+          <tbody>
+            {customers.map((c) => (
+              <tr key={c._id}>
+                <td className="border px-4 py-2">{c.name}</td>
+                <td className="border px-4 py-2">{c.email}</td>
+                <td className="border px-4 py-2">{c.phone}</td>
+                <td className="border px-4 py-2">
+                  {new Date(c.createdAt).toLocaleDateString()}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filtered.map((u) => (
-                <tr key={u._id}>
-                  <td>{u.name || "—"}</td>
-                  <td>{u.email || "—"}</td>
-                  <td>{u.phone || "—"}</td>
-                  <td><span className="badge">{fmt(u.createdAt)}</span></td>
-                </tr>
-              ))}
-              {filtered.length === 0 && <tr><td colSpan={4} style={{ color: "#6b7280" }}>No customers found.</td></tr>}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       )}
-    </section>
+    </div>
   );
 };
 

@@ -1,138 +1,196 @@
 // backend/controllers/postRequestController.js
 const PostRequest = require('../models/PostRequest');
 const User = require('../models/User');
-const mongoose = require('mongoose');
 
-// Customer: create a new post request (optionally targeted to a worker)
-exports.createPostRequest = async (req, res, next) => {
+/**
+ * POST /api/postrequests
+ * Body: { category, description, workerId? }
+ * - Customer creates a service request (optionally targeting a specific worker).
+ * - Default status: 'pending'
+ */
+exports.createPostRequest = async (req, res) => {
   try {
     const customerId = req.user?._id;
-    const { category, description, workerId = null } = req.body;
-
     if (!customerId) return res.status(401).json({ message: 'Unauthorized' });
-    if (!category || !description) {
-      return res.status(400).json({ message: 'Category and description are required.' });
+
+    const { category, description, workerId } = req.body;
+
+    if (!category || !description?.trim()) {
+      return res.status(400).json({ message: 'Category and description are required' });
     }
 
-    const payload = { customerId, category, description, status: 'pending' };
-
-    // allow direct request to a specific worker if valid
-    if (workerId && mongoose.Types.ObjectId.isValid(workerId)) {
-      payload.workerId = workerId;
-    } else {
-      payload.workerId = null;
+    const valid = ['electric', 'babysitting', 'gardening', 'househelp', 'plumbing'];
+    const incomingCategory = String(category).toLowerCase();
+    if (!valid.includes(incomingCategory)) {
+      return res.status(400).json({ message: 'Invalid category' });
     }
 
-    const savedRequest = await PostRequest.create(payload);
-    res.status(201).json(savedRequest);
-  } catch (error) {
-    console.error('Error creating post request:', error);
-    next ? next(error) : res.status(500).json({ message: 'Server error' });
+    let assignedWorkerId = null;
+    if (workerId) {
+      const worker = await User.findById(workerId).select('_id role category');
+      if (!worker || worker.role !== 'worker') {
+        return res.status(400).json({ message: 'Invalid worker' });
+      }
+      assignedWorkerId = worker._id;
+    }
+
+    // ✅ Minimal necessary change: store normalized (lowercased) category
+    const doc = await PostRequest.create({
+      customerId,
+      workerId: assignedWorkerId,
+      category: incomingCategory,
+      description: description.trim(),
+      status: 'pending',
+    });
+
+    return res.status(201).json(doc);
+  } catch (err) {
+    console.error('createPostRequest error:', err);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Customer: get all requests by logged-in customer
-exports.getCustomerRequests = async (req, res, next) => {
+/**
+ * GET /api/postrequests/customer
+ * - Customer post history: all requests created by me
+ */
+exports.getCustomerRequests = async (req, res) => {
   try {
     const customerId = req.user?._id;
     if (!customerId) return res.status(401).json({ message: 'Unauthorized' });
 
-    const requests = await PostRequest.find({ customerId })
+    const rows = await PostRequest.find({ customerId })
       .sort({ createdAt: -1 });
-    res.json(requests);
-  } catch (error) {
-    console.error('Error fetching post requests:', error);
-    next ? next(error) : res.status(500).json({ message: 'Server error' });
+
+    return res.json(rows);
+  } catch (err) {
+    console.error('getCustomerRequests error:', err);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Worker: get pending requests that match worker's category (UNASSIGNED) or are directly assigned to this worker
-exports.getRequestsForWorkerCategory = async (req, res, next) => {
+/**
+ * GET /api/postrequests/worker
+ * - Worker feed (Home): show pending requests that are:
+ *   1) Unassigned AND match my category, OR
+ *   2) Explicitly assigned to me and still pending
+ * - Populates customer info so UI can display who requested it.
+ */
+exports.getRequestsForWorkerCategory = async (req, res) => {
   try {
     const workerId = req.user?._id;
     if (!workerId) return res.status(401).json({ message: 'Unauthorized' });
 
-    const worker = await User.findById(workerId).lean();
+    const worker = await User.findById(workerId).select('_id role category');
     if (!worker || worker.role !== 'worker') {
-      return res.status(403).json({ message: 'You are not authorized or your category is missing.' });
-    }
-    if (!worker.category) {
-      return res.status(400).json({ message: 'Worker category not found.' });
+      return res.status(403).json({ message: 'Forbidden' });
     }
 
-    // Only show unassigned pending jobs in worker's category, PLUS any pending jobs directly assigned to this worker
-    const requests = await PostRequest.find({
+    // ✅ Minimal necessary change: normalize worker category for matching
+    const workerCategory = String(worker.category || '').toLowerCase();
+
+    const query = {
       status: 'pending',
       $or: [
-        { category: worker.category, workerId: null },
-        { workerId: workerId }
-      ]
-    }).sort({ createdAt: -1 });
+        { workerId: null, category: workerCategory },
+        { workerId: workerId },
+      ],
+    };
 
-    res.json(requests);
-  } catch (error) {
-    console.error('Error fetching requests for worker:', error);
-    next ? next(error) : res.status(500).json({ message: 'Server error' });
+    const requests = await PostRequest.find(query)
+      .sort({ createdAt: -1 })
+      .populate('customerId', 'name email phone');
+
+    // Keep the previous shape; add a 'customer' helper for the UI
+    const shaped = requests.map((r) => ({
+      _id: r._id,
+      category: r.category,
+      description: r.description,
+      status: r.status,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      workerId: r.workerId,
+      customerId: r.customerId?._id ?? null,
+      customer: r.customerId
+        ? {
+            _id: r.customerId._id,
+            name: r.customerId.name,
+            email: r.customerId.email,
+            phone: r.customerId.phone,
+          }
+        : null,
+    }));
+
+    return res.json(shaped);
+  } catch (err) {
+    console.error('getRequestsForWorkerCategory error:', err);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Worker: accept/reject a request (param :id)
-exports.updateRequestStatus = async (req, res, next) => {
+/**
+ * PATCH /api/postrequests/:id/accept
+ * - Worker accepts a request (only if it is pending and either targeted to them or unassigned in their category)
+ */
+exports.acceptRequest = async (req, res) => {
   try {
     const workerId = req.user?._id;
+    if (!workerId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const worker = await User.findById(workerId).select('_id role category');
+    if (!worker || worker.role !== 'worker') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
     const { id } = req.params;
-    const { status } = req.body; // "accepted" or "rejected"
-
-    if (!workerId) return res.status(401).json({ message: 'Unauthorized' });
-    if (!['accepted', 'rejected'].includes(status)) {
-      return res.status(400).json({ message: "Invalid status. Use 'accepted' or 'rejected'." });
-    }
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'Invalid request id.' });
+    const pr = await PostRequest.findById(id);
+    if (!pr) return res.status(404).json({ message: 'Request not found' });
+    if (pr.status !== 'pending') {
+      return res.status(400).json({ message: 'Request is not pending' });
     }
 
-    const request = await PostRequest.findById(id);
-    if (!request) {
-      return res.status(404).json({ message: 'Request not found.' });
+    // ✅ Normalize worker.category for the category match check
+    const workerCategory = String(worker.category || '').toLowerCase();
+
+    // Accept if:
+    // - unassigned AND category matches worker, OR
+    // - assigned to this worker
+    const canAccept =
+      (!pr.workerId && pr.category === workerCategory) ||
+      String(pr.workerId) === String(workerId);
+
+    if (!canAccept) {
+      return res.status(403).json({ message: 'You cannot accept this request' });
     }
 
-    // Only pending requests can be updated
-    if (request.status !== 'pending') {
-      return res.status(400).json({ message: 'Request status cannot be updated.' });
-    }
+    pr.workerId = workerId;
+    pr.status = 'accepted';
+    await pr.save();
 
-    if (status === 'accepted') {
-      // Assign the request to this worker and mark accepted
-      request.workerId = workerId;
-      request.status = 'accepted';
-    } else {
-      // Rejection: keep the request available for others
-      // If it was directly targeted to this worker, clear the assignment
-      if (String(request.workerId) === String(workerId)) {
-        request.workerId = null;
-      }
-      request.status = 'pending';
-    }
-
-    await request.save();
-    res.json({ message: `Request ${status} successfully.`, request });
-  } catch (error) {
-    console.error('Error updating request status:', error);
-    next ? next(error) : res.status(500).json({ message: 'Server error' });
+    return res.json(pr);
+  } catch (err) {
+    console.error('acceptRequest error:', err);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Worker: get accepted requests assigned to logged-in worker (history)
-exports.getAcceptedRequestsForWorker = async (req, res, next) => {
+/**
+ * GET /api/postrequests/accepted
+ * - Worker request history: requests this worker has accepted
+ */
+exports.getAcceptedRequestsForWorker = async (req, res) => {
   try {
     const workerId = req.user?._id;
     if (!workerId) return res.status(401).json({ message: 'Unauthorized' });
 
-    const requests = await PostRequest.find({ workerId, status: 'accepted' })
-      .sort({ updatedAt: -1 });
-    res.json(requests);
-  } catch (error) {
-    console.error('Error fetching accepted requests:', error);
-    next ? next(error) : res.status(500).json({ message: 'Server error' });
+    const rows = await PostRequest.find({
+      workerId,
+      status: 'accepted',
+    }).sort({ updatedAt: -1 });
+
+    return res.json(rows);
+  } catch (err) {
+    console.error('getAcceptedRequestsForWorker error:', err);
+    return res.status(500).json({ message: 'Server error' });
   }
 };

@@ -12,8 +12,6 @@ import AdminDashboard from "./pages/AdminDashboard";
 import PostHistory from "./pages/PostHistory";
 import WorkerRequestHistory from "./pages/WorkerRequestHistory";
 import Profile from "./pages/Profile";
-// Customer search removed for now
-// import SearchResults from "./pages/SearchResults";
 import ServiceWorkerList from "./pages/ServiceWorkerList";
 import WorkerProfile from "./pages/WorkerProfile";
 
@@ -21,7 +19,7 @@ const App = () => {
   return (
     <Router>
       <Routes>
-        {/* Public routes */}
+        {/* Public */}
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
@@ -34,7 +32,6 @@ const App = () => {
             </PrivateRoute>
           }
         />
-        {/* Post History under dashboard */}
         <Route
           path="/dashboard/posthistory"
           element={
@@ -43,17 +40,6 @@ const App = () => {
             </PrivateRoute>
           }
         />
-        {/* Customer search disabled */}
-        {/*
-        <Route
-          path="/search"
-          element={
-            <PrivateRoute>
-              <SearchResults />
-            </PrivateRoute>
-          }
-        />
-        */}
         <Route
           path="/service-workers"
           element={
@@ -72,7 +58,7 @@ const App = () => {
             </PrivateRoute>
           }
         />
-        {/* ✅ Primary worker history route */}
+        {/* Canonical worker history */}
         <Route
           path="/worker/requests"
           element={
@@ -81,9 +67,9 @@ const App = () => {
             </PrivateRoute>
           }
         />
-        {/* ✅ Alias so /dashboard/workerhistory also works */}
+        {/* Alias to avoid blank page if anything still points here */}
         <Route
-          path="/dashboard/workerhistory"
+          path="/dashboard/workerrequesthistory"
           element={
             <PrivateRoute>
               <WorkerRequestHistory />
@@ -96,6 +82,16 @@ const App = () => {
           element={
             <PrivateRoute>
               <WorkerProfile />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Profile (works for any role) */}
+        <Route
+          path="/dashboard/profile"
+          element={
+            <PrivateRoute>
+              <Profile />
             </PrivateRoute>
           }
         />
