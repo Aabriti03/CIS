@@ -1,0 +1,15 @@
+/* AuthBgOverride.css — affects ONLY Login and Register */
+.login-container,
+.register-container {
+  min-height: 100vh;
+  background: #000 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-container .login-form,
+.register-container .register-form {
+  position: relative;
+  z-index: 1;
+}

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
 import "../components/Login.css";
+import "./AuthBgOverride.css";
 
 const Login = () => {
   const navigate = useNavigate();

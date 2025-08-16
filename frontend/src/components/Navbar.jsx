@@ -92,7 +92,7 @@ const Navbar = () => {
           <li onClick={() => navigate('/dashboard/profile')} style={{ cursor: 'pointer' }}>
             View Profile
           </li>
-          <li style={{ cursor: 'pointer' }}>🔔</li>
+          
         </ul>
       </nav>
 

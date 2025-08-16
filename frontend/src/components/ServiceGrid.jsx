@@ -18,6 +18,7 @@ const services = [
 const ServiceGrid = () => {
   const navigate = useNavigate();
 
+  // Map display titles to the slug used in the route
   const categoryMap = {
     Babysitting: "babysitting",
     Electric: "electric",
@@ -28,6 +29,7 @@ const ServiceGrid = () => {
 
   const handleClick = (serviceTitle) => {
     const category = categoryMap[serviceTitle];
+    // Navigate to a dynamic route that includes the category
     navigate(`/service/${category}`);
   };
 
@@ -35,7 +37,11 @@ const ServiceGrid = () => {
     <div className="service-grid-wrapper">
       <div className="service-grid">
         {services.map((service, idx) => (
-          <div key={idx} className="service-card" onClick={() => handleClick(service.title)}>
+          <div
+            key={idx}
+            className="service-card"
+            onClick={() => handleClick(service.title)}
+          >
             <img src={service.image} alt={service.title} />
             <h3>{service.title}</h3>
           </div>

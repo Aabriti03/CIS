@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from '../api/api';
 import "./Register.css";
+import "./AuthBgOverride.css";
 
 const Register = () => {
   const navigate = useNavigate();

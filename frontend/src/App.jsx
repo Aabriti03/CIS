@@ -40,6 +40,8 @@ const App = () => {
             </PrivateRoute>
           }
         />
+        <Route path="/service/:category" element={<ServiceWorkerList />} />
+
         <Route
           path="/service-workers"
           element={
