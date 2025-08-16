@@ -4,6 +4,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const mongoose = require('mongoose'); // added for health route
 
 const connectDB = require('./config/db'); // make sure this connects to MongoDB
 const authRoutes = require('./routes/authRoutes');
@@ -42,7 +43,13 @@ app.options('*', cors(corsOptions)); // Preflight requests
 
 // -------- Health check --------
 app.get('/health', (req, res) => {
-  res.status(200).json({ ok: true, env: process.env.NODE_ENV || 'development' });
+  const states = ["disconnected", "connected", "connecting", "disconnecting", "uninitialized"];
+  const dbState = states[mongoose.connection.readyState] || "unknown";
+  res.status(200).json({
+    ok: true,
+    env: process.env.NODE_ENV || 'development',
+    db: dbState,
+  });
 });
 
 // -------- API routes --------
