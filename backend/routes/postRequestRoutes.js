@@ -1,4 +1,7 @@
-const router = require('express').Router();
+// backend/routes/postRequestRoutes.js
+const express = require('express');
+const router = express.Router();
+
 const auth = require('../middleware/authMiddleware');
 const { requireRole } = require('../middleware/roles');
 
@@ -10,17 +13,19 @@ const {
   getAcceptedRequestsForWorker,
 } = require('../controllers/postRequestController');
 
-// ✅ Customer can create requests & view own requests
+// Customer creates a request
 router.post('/', auth, requireRole('customer'), createPostRequest);
+
+// Customer: get my requests
 router.get('/customer', auth, requireRole('customer'), getCustomerRequests);
 
-// ✅ Worker can view requests for their category
+// Worker: available/pending requests (unassigned in my category OR pending assigned to me)
 router.get('/worker', auth, requireRole('worker'), getRequestsForWorkerCategory);
 
-// ✅ Worker can view their accepted requests
-router.get('/worker/accepted', auth, requireRole('worker'), getAcceptedRequestsForWorker);
-
-// ✅ Worker can update request status
+// Worker: accept/reject a request
 router.put('/:id/status', auth, requireRole('worker'), updateRequestStatus);
+
+// Worker: my accepted requests (HISTORY)  🔧 this is the route your UI needs
+router.get('/accepted', auth, requireRole('worker'), getAcceptedRequestsForWorker);
 
 module.exports = router;

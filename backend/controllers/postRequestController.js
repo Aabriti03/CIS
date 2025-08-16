@@ -46,7 +46,7 @@ exports.getCustomerRequests = async (req, res, next) => {
   }
 };
 
-// Worker: get pending requests that match worker's category OR are directly assigned
+// Worker: get pending requests that match worker's category (UNASSIGNED) or are directly assigned to this worker
 exports.getRequestsForWorkerCategory = async (req, res, next) => {
   try {
     const workerId = req.user?._id;
@@ -60,13 +60,14 @@ exports.getRequestsForWorkerCategory = async (req, res, next) => {
       return res.status(400).json({ message: 'Worker category not found.' });
     }
 
+    // Only show unassigned pending jobs in worker's category, PLUS any pending jobs directly assigned to this worker
     const requests = await PostRequest.find({
+      status: 'pending',
       $or: [
-        { category: worker.category, status: 'pending' },
-        { workerId: workerId, status: 'pending' }, // directly targeted to this worker
-      ],
-    })
-      .sort({ createdAt: -1 });
+        { category: worker.category, workerId: null },
+        { workerId: workerId }
+      ]
+    }).sort({ createdAt: -1 });
 
     res.json(requests);
   } catch (error) {
@@ -83,11 +84,9 @@ exports.updateRequestStatus = async (req, res, next) => {
     const { status } = req.body; // "accepted" or "rejected"
 
     if (!workerId) return res.status(401).json({ message: 'Unauthorized' });
-
     if (!['accepted', 'rejected'].includes(status)) {
       return res.status(400).json({ message: "Invalid status. Use 'accepted' or 'rejected'." });
     }
-
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid request id.' });
     }
@@ -102,11 +101,20 @@ exports.updateRequestStatus = async (req, res, next) => {
       return res.status(400).json({ message: 'Request status cannot be updated.' });
     }
 
-    // Assign workerId and update status
-    request.workerId = workerId;
-    request.status = status;
-    await request.save();
+    if (status === 'accepted') {
+      // Assign the request to this worker and mark accepted
+      request.workerId = workerId;
+      request.status = 'accepted';
+    } else {
+      // Rejection: keep the request available for others
+      // If it was directly targeted to this worker, clear the assignment
+      if (String(request.workerId) === String(workerId)) {
+        request.workerId = null;
+      }
+      request.status = 'pending';
+    }
 
+    await request.save();
     res.json({ message: `Request ${status} successfully.`, request });
   } catch (error) {
     console.error('Error updating request status:', error);

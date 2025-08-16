@@ -1,77 +1,84 @@
 // frontend/src/pages/WorkerRequestHistory.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from '../api/api';
-import WorkerNavbar from "../components/WorkerNavbar";
+import api from "../api/api";
+import Navbar from "../components/Navbar";
 
-const WorkerRequestHistory = () => {
+export default function WorkerRequestHistory() {
   const navigate = useNavigate();
-  const [history, setHistory] = useState([]);
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  async function fetchHistory() {
+    setLoading(true);
+    setErr("");
+    try {
+      const res = await api.get("/postrequests/accepted"); // ✅ backend route
+      setRows(Array.isArray(res.data) ? res.data : []);
+    } catch (e) {
+      console.error("Error loading worker history:", e);
+      const msg = e?.response?.data?.message || "Failed to load history";
+      setErr(msg);
+      if (e.response?.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const res = await api.get("/postrequests/worker/accepted");
-        setHistory(Array.isArray(res.data) ? res.data : []);
-      } catch (error) {
-        console.error("Error fetching request history:", error);
-        if (error.response?.status === 401) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          navigate("/");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchHistory();
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <div style={{ backgroundColor: "#CFFFE2", minHeight: "100vh", padding: "20px" }}>
-      <WorkerNavbar />
-      <h2>Your Accepted Requests</h2>
-      {loading ? (
-        <p>Loading...</p>
-      ) : history.length === 0 ? (
-        <p>No accepted requests found.</p>
-      ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ backgroundColor: "#98ff98" }}>
-              <th style={{ padding: "10px", border: "1px solid #000" }}>Category</th>
-              <th style={{ padding: "10px", border: "1px solid #000" }}>Description</th>
-              <th style={{ padding: "10px", border: "1px solid #000" }}>Status</th>
-              <th style={{ padding: "10px", border: "1px solid #000" }}>Date Accepted</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map((req) => (
-              <tr key={req._id}>
-                <td style={{ padding: "10px", border: "1px solid #000" }}>
-                  {req.category
-                    ? req.category.charAt(0).toUpperCase() + req.category.slice(1)
-                    : ""}
-                </td>
-                <td style={{ padding: "10px", border: "1px solid #000" }}>
-                  {req.description || ""}
-                </td>
-                <td style={{ padding: "10px", border: "1px solid #000" }}>
-                  {req.status
-                    ? req.status.charAt(0).toUpperCase() + req.status.slice(1)
-                    : ""}
-                </td>
-                <td style={{ padding: "10px", border: "1px solid #000" }}>
-                  {req.updatedAt ? new Date(req.updatedAt).toLocaleString() : ""}
-                </td>
+    <div style={{ backgroundColor: "#FFF8E1", minHeight: "100vh" }}>
+      <Navbar />
+      <div style={{ padding: 20 }}>
+        <h2 style={{ marginBottom: 16 }}>My Accepted Requests</h2>
+
+        {loading ? (
+          <p>Loading...</p>
+        ) : err ? (
+          <p style={{ color: "red" }}>{err}</p>
+        ) : rows.length === 0 ? (
+          <p>No accepted requests yet.</p>
+        ) : (
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              background: "#fff",
+              borderRadius: 10,
+              overflow: "hidden",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            }}
+          >
+            <thead>
+              <tr style={{ background: "black", color: "#fff" }}>
+                <th style={{ padding: 12, textAlign: "left" }}>Category</th>
+                <th style={{ padding: 12, textAlign: "left" }}>Description</th>
+                <th style={{ padding: 12, textAlign: "left" }}>Accepted At</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r._id} style={{ borderBottom: "1px solid #eee" }}>
+                  <td style={{ padding: 10 }}>{r.category}</td>
+                  <td style={{ padding: 10 }}>{r.description}</td>
+                  <td style={{ padding: 10 }}>
+                    {r.updatedAt ? new Date(r.updatedAt).toLocaleString() : ""}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
-};
-
-export default WorkerRequestHistory;
+}

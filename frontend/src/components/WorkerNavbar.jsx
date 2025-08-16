@@ -1,3 +1,4 @@
+// frontend/src/components/WorkerNavbar.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
@@ -20,7 +21,8 @@ const WorkerNavbar = () => {
   };
 
   const goToRequestHistory = () => {
-    navigate("/dashboard/workerhistory"); // ✅ fixed route
+    // 🔧 FIX: match App.jsx route
+    navigate("/worker/requests");
   };
 
   return (

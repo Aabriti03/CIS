@@ -1,3 +1,4 @@
+// frontend/src/App.jsx
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
@@ -11,7 +12,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import PostHistory from "./pages/PostHistory";
 import WorkerRequestHistory from "./pages/WorkerRequestHistory";
 import Profile from "./pages/Profile";
-import SearchResults from "./pages/SearchResults";
+// Customer search removed for now
+// import SearchResults from "./pages/SearchResults";
 import ServiceWorkerList from "./pages/ServiceWorkerList";
 import WorkerProfile from "./pages/WorkerProfile";
 
@@ -32,14 +34,17 @@ const App = () => {
             </PrivateRoute>
           }
         />
+        {/* Post History under dashboard */}
         <Route
-          path="/post-history"
+          path="/dashboard/posthistory"
           element={
             <PrivateRoute>
               <PostHistory />
             </PrivateRoute>
           }
         />
+        {/* Customer search disabled */}
+        {/*
         <Route
           path="/search"
           element={
@@ -48,6 +53,7 @@ const App = () => {
             </PrivateRoute>
           }
         />
+        */}
         <Route
           path="/service-workers"
           element={
@@ -66,6 +72,7 @@ const App = () => {
             </PrivateRoute>
           }
         />
+        {/* ✅ Primary worker history route */}
         <Route
           path="/worker/requests"
           element={
@@ -74,8 +81,18 @@ const App = () => {
             </PrivateRoute>
           }
         />
+        {/* ✅ Alias so /dashboard/workerhistory also works */}
         <Route
-          path="/worker/:workerId"
+          path="/dashboard/workerhistory"
+          element={
+            <PrivateRoute>
+              <WorkerRequestHistory />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/worker/:id"
           element={
             <PrivateRoute>
               <WorkerProfile />

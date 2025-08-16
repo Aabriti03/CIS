@@ -1,7 +1,7 @@
 // frontend/src/pages/PostHistory.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api/api"; // 
+import api from "../api/api";
 import Navbar from "../components/Navbar";
 
 export default function PostHistory() {
@@ -10,14 +10,14 @@ export default function PostHistory() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const run = async () => {
+    const fetchRequests = async () => {
       try {
-        const res = await api.get("/postrequests");
+        const res = await api.get("/postrequests/customer");
         setRequests(Array.isArray(res.data) ? res.data : []);
-      } catch (e) {
-        console.error("Error fetching post history:", e);
-        if (e.response?.status === 401) {
-          // Token invalid → logout
+      } catch (err) {
+        console.error("Error fetching post history:", err);
+        if (err.response?.status === 401) {
+          // Token expired or invalid → logout user
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           navigate("/");
@@ -26,14 +26,15 @@ export default function PostHistory() {
         setLoading(false);
       }
     };
-    run();
+
+    fetchRequests();
   }, [navigate]);
 
   return (
     <div style={{ backgroundColor: "#CFFFE2", minHeight: "100vh" }}>
       <Navbar />
       <div style={{ padding: 20 }}>
-        <h2 style={{ color: "black" }}>Your Post History</h2>
+        <h2 style={{ color: "black", marginBottom: 20 }}>Your Post History</h2>
 
         {loading ? (
           <p>Loading...</p>
@@ -47,6 +48,7 @@ export default function PostHistory() {
               background: "#fff",
               borderRadius: 10,
               overflow: "hidden",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             }}
           >
             <thead>
@@ -62,7 +64,19 @@ export default function PostHistory() {
                 <tr key={r._id} style={{ borderBottom: "1px solid #eee" }}>
                   <td style={{ padding: 10 }}>{r.category}</td>
                   <td style={{ padding: 10 }}>{r.description}</td>
-                  <td style={{ padding: 10, textTransform: "capitalize" }}>
+                  <td
+                    style={{
+                      padding: 10,
+                      textTransform: "capitalize",
+                      fontWeight: r.status === "accepted" ? "bold" : "normal",
+                      color:
+                        r.status === "accepted"
+                          ? "green"
+                          : r.status === "rejected"
+                          ? "red"
+                          : "orange",
+                    }}
+                  >
                     {r.status}
                   </td>
                   <td style={{ padding: 10 }}>

@@ -45,9 +45,7 @@ const WorkerDashboard = () => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await api.patch(`/postrequests/${requestId}`, { status });
-
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.put(`/postrequests/${requestId}/status`, { status });
       await fetchRequests();
     } catch (error) {
       console.error(`Error updating request status to ${status}:`, error);

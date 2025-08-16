@@ -1,3 +1,4 @@
+// frontend/src/components/Navbar.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
@@ -9,7 +10,6 @@ const Navbar = () => {
   const [showPostModal, setShowPostModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [description, setDescription] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
 
   const openPostModal = () => setShowPostModal(true);
@@ -42,6 +42,7 @@ const Navbar = () => {
       if (response.status === 201) {
         alert('✅ Request posted successfully!');
         closePostModal();
+        // ✅ Redirect to Post History under dashboard
         navigate('/dashboard/posthistory');
       } else {
         alert('⚠️ Unexpected server response');
